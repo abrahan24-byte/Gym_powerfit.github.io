@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign Up - PowerFit Gym</title>
+    <link rel="stylesheet" href="../css/stilo.css">
+  </head>
+  <body class="auth-page">
+    <main class="auth-wrap auth-helper-wrap">
+      <section class="auth-card auth-helper-card">
+        <div class="auth-card-header">
+          <h2>Sign Up con PHP</h2>
+          <p>Para registrar clientes necesitas abrir el proyecto con XAMPP, porque GitHub Pages y Live Server no ejecutan PHP.</p>
+        </div>
+        <p><a id="xamppLink" href="http://127.0.0.1/gym-test/signup/index.php">Abrir Sign Up en XAMPP</a></p>
+        <p><a href="../index.html">Volver al inicio</a></p>
+      </section>
+    </main>
+    <script>
+      var destino = "http://127.0.0.1/gym-test/signup/index.php" + window.location.search;
+      document.getElementById("xamppLink").href = destino;
+
+      if ((location.hostname === "127.0.0.1" || location.hostname === "localhost") && location.port !== "") {
+        window.location.replace(destino);
+      }
+    </script>
+  </body>
+</html>

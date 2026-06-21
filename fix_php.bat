@@ -18,7 +18,7 @@ robocopy "%SRC%" "%DST%" /MIR /XD ".git" ".vscode" /XF "fix_php.bat" >nul
 echo.
 echo Listo. Abre XAMPP e inicia Apache y MySQL.
 echo URL principal:
-echo http://127.0.0.1/gym-test/
+echo http://127.0.0.1:5500/gym-test/
 echo.
-start "" "http://127.0.0.1/gym-test/"
+start "" "http://127.0.0.1:5500/gym-test/"
 pause

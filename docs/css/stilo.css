@@ -1,0 +1,467 @@
+@charset "utf-8";
+
+/* Estilos generales */
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f7fa;
+  color: #222;
+}
+
+body.menu-is-fixed {
+  padding-top: var(--menu-height, 52px);
+}
+
+/* Menu de navegacion */
+.navbar {
+  border: 0;
+  border-radius: 0;
+  margin-bottom: 0;
+}
+
+.navbar-default {
+  background-color: #101820;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.navbar-default .navbar-brand,
+.navbar-default .navbar-nav > li > a {
+  color: #fff;
+  font-weight: 700;
+}
+
+.navbar-default .navbar-brand:hover,
+.navbar-default .navbar-brand:focus,
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus {
+  color: #f2c94c;
+}
+
+.navbar-default .navbar-toggle {
+  border-color: #f2c94c;
+}
+
+.navbar-default .navbar-toggle:hover,
+.navbar-default .navbar-toggle:focus {
+  background-color: #182532;
+}
+
+.navbar-default .navbar-toggle .icon-bar {
+  background-color: #f2c94c;
+}
+
+.navbar-default .navbar-collapse,
+.navbar-default .navbar-form {
+  border-color: #263544;
+}
+
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus {
+  color: #101820;
+  background-color: #f2c94c;
+}
+
+.menu {
+  transition: all ease 0.5s;
+}
+
+.menu-fixed {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Slider */
+.carousel-inner > .item > img {
+  height: 430px;
+  object-fit: cover;
+  filter: brightness(60%);
+}
+
+.carousel-caption {
+  bottom: 28%;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.carousel-caption h3 {
+  font-size: 42px;
+  font-weight: 700;
+}
+
+.carousel-caption p {
+  font-size: 18px;
+}
+
+/* Contenido */
+#inicio,
+#programas,
+#membresias,
+#contacto {
+  scroll-margin-top: 70px;
+}
+
+.intro {
+  padding: 38px 0 20px;
+}
+
+.intro h3 {
+  color: #101820;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.login-box,
+.programa,
+.membresia {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(16, 24, 32, 0.12);
+}
+
+.login-box {
+  padding: 26px;
+  margin-bottom: 42px;
+}
+
+.auth-page {
+  min-height: 100vh;
+  background: #f2f4f7;
+}
+
+.auth-wrap {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - 50px);
+}
+
+.auth-visual,
+.auth-card {
+  width: 50%;
+}
+
+.auth-visual {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 620px;
+  padding: 58px;
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(16, 24, 32, 0.18), rgba(16, 24, 32, 0.88)),
+    url("../img/Espacio.avif") center/cover;
+}
+
+.auth-visual-signup {
+  background:
+    linear-gradient(180deg, rgba(16, 24, 32, 0.2), rgba(16, 24, 32, 0.86)),
+    url("../img/Grupo.avif") center/cover;
+}
+
+.auth-visual-content {
+  max-width: 520px;
+}
+
+.auth-kicker {
+  color: #f2c94c;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.auth-visual h1 {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 14px;
+}
+
+.auth-visual p {
+  font-size: 17px;
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 54px 64px;
+  background: #fff;
+}
+
+.auth-card > * {
+  width: 100%;
+  max-width: 430px;
+}
+
+.auth-helper-wrap {
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.auth-helper-card {
+  width: 100%;
+  max-width: 560px;
+}
+
+.auth-card-header {
+  margin-bottom: 24px;
+}
+
+.auth-card h2 {
+  color: #101820;
+  font-size: 30px;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+.auth-card-header p {
+  color: #5b6470;
+  margin-bottom: 0;
+}
+
+.auth-card label {
+  color: #101820;
+}
+
+.auth-card .form-control {
+  border-color: #c8d0d8;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.auth-card .form-control:focus {
+  border-color: #f2c94c;
+  box-shadow: 0 0 0 3px rgba(242, 201, 76, 0.22);
+}
+
+.auth-card select.form-control {
+  height: 46px;
+}
+
+.auth-card .glyphicon {
+  margin-right: 6px;
+}
+
+.auth-switch {
+  margin: 22px 0 0;
+  text-align: center;
+}
+
+.auth-switch a {
+  color: #101820;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.btn-gym {
+  background: #f2c94c;
+  border-color: #f2c94c;
+  color: #101820;
+  font-weight: 700;
+}
+
+.btn-gym:hover,
+.btn-gym:focus {
+  background: #d9b43f;
+  border-color: #d9b43f;
+  color: #101820;
+}
+
+.btn-suscripcion {
+  background: #f2c94c;
+  border: 0;
+  border-radius: 6px;
+  color: #101820;
+  font-weight: 700;
+  margin-top: auto;
+  padding: 12px 14px;
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-suscripcion:hover,
+.btn-suscripcion:focus {
+  background: #d9b43f;
+  box-shadow: 0 8px 18px rgba(16, 24, 32, 0.18);
+  color: #101820;
+  transform: translateY(-1px);
+}
+
+.programas {
+  padding: 20px 0 45px;
+}
+
+.programa {
+  min-height: 160px;
+  padding: 22px;
+  margin-bottom: 20px;
+}
+
+.programa h4 {
+  color: #101820;
+  font-weight: 700;
+}
+
+.membresias {
+  padding: 20px 0 55px;
+}
+
+.membresias-lista {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.membresias-lista > [class*="col-"] {
+  display: flex;
+  float: none;
+  width: 100%;
+}
+
+.membresia {
+  display: flex;
+  flex-direction: column;
+  min-height: 285px;
+  padding: 24px;
+  margin-bottom: 20px;
+  width: 100%;
+  border-top: 5px solid #101820;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Colores por tipo de membresia */
+.membresia-basica {
+  border-top-color: #27ae60;
+}
+
+.membresia-estandar {
+  border-top-color: #f2c94c;
+}
+
+.membresia-premium,
+.membresia.destacada {
+  border-top-color: #f2994a;
+}
+
+.membresia-vip {
+  border-top-color: #eb5757;
+}
+
+.membresia:hover {
+  box-shadow: 0 12px 28px rgba(16, 24, 32, 0.18);
+  transform: translateY(-3px);
+}
+
+.membresia h4 {
+  color: #101820;
+  font-weight: 700;
+}
+
+.membresia > p:not(.precio) {
+  color: #4d5560;
+  margin-bottom: 22px;
+}
+
+.precio {
+  color: #101820;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 14px 0;
+}
+
+.precio span {
+  color: #555;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Pie de pagina */
+footer {
+  color: #fff;
+}
+
+.pie01 {
+  background-color: #101820;
+  margin-top: 60px;
+  padding: 34px 0;
+}
+
+.pie01 a {
+  color: #f2c94c;
+}
+
+.pie01 a:hover,
+.pie01 a:focus {
+  color: #fff;
+}
+
+.pie02 {
+  background-color: #070b0f;
+  padding: 15px;
+  text-align: center;
+}
+
+@media only screen and (max-width: 900px) {
+  .carousel-inner > .item > img {
+    height: 320px;
+  }
+
+  .carousel-caption {
+    bottom: 18%;
+  }
+
+  .carousel-caption h3 {
+    font-size: 28px;
+  }
+
+  .carousel-caption p {
+    font-size: 15px;
+  }
+
+  .auth-wrap {
+    display: block;
+    min-height: auto;
+  }
+
+  .auth-visual,
+  .auth-card {
+    width: 100%;
+  }
+
+  .auth-visual {
+    min-height: 250px;
+    padding: 32px 22px;
+  }
+
+  .auth-visual h1 {
+    font-size: 30px;
+  }
+
+  .auth-visual p {
+    font-size: 15px;
+  }
+
+  .auth-card {
+    max-width: none;
+    padding: 32px 22px 42px;
+  }
+
+  .auth-card h2 {
+    font-size: 26px;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .membresias-lista > .col-sm-6 {
+    width: 50%;
+  }
+}
+
+@media only screen and (min-width: 992px) {
+  .membresias-lista > .col-md-3 {
+    width: 25%;
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "extends": [
+    "development"
+  ],
+  "hints": {
+    "compat-api/css": [
+      "default",
+      {
+        "ignore": [
+          "min-height: auto"
+        ]
+      }
+    ],
+    "axe/aria": [
+      "default",
+      {
+        "aria-input-field-name": "off",
+        "aria-required-children": "off"
+      }
+    ],
+    "highest-available-document-mode": "off"
+  }
+}

@@ -262,6 +262,32 @@ $adminAutenticado = !empty($_SESSION["admin_auth"]);
 
   <body class="<?php echo $adminAutenticado ? 'dashboard-page' : 'auth-page'; ?>">
     <?php if (!$adminAutenticado) : ?>
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#adminLoginNavbar" aria-controls="adminLoginNavbar" aria-expanded="false">
+              <span class="sr-only">Abrir navegaci&oacute;n</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="../index.html#inicio">PowerFit Gym</a>
+          </div>
+
+          <div class="collapse navbar-collapse" id="adminLoginNavbar">
+            <ul class="nav navbar-nav navbar-right">
+              <li><a href="../index.html#inicio">Inicio</a></li>
+              <li><a href="../index.html#programas">Programas</a></li>
+              <li><a href="../index.html#membresias">Membres&iacute;as</a></li>
+              <li><a href="../login/">Login</a></li>
+              <li><a href="../signup/">Sign Up</a></li>
+              <li class="active"><a href="../admin/">Admin</a></li>
+              <li><a href="../index.html#contacto">Contacto</a></li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
       <main class="auth-wrap admin-login-wrap">
         <section class="auth-visual admin-visual" aria-label="Administraci&oacute;n PowerFit Gym">
           <div class="auth-visual-content">

@@ -112,6 +112,7 @@ if ($formularioEnviado) {
             <li><a href="../index.html#membresias">Membres&iacute;as</a></li>
             <li class="active"><a href="../login/">Login</a></li>
             <li><a href="../signup/">Sign Up</a></li>
+            <li><a href="../admin/">Admin</a></li>
             <li><a href="../index.html#contacto">Contacto</a></li>
           </ul>
         </div>

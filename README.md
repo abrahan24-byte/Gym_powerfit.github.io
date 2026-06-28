@@ -13,23 +13,26 @@ Sistema web sencillo para mostrar membresias, registrar clientes y permitir logi
 No uses Live Server para abrir archivos `.php`, porque mostrara el codigo PHP como texto. Usa XAMPP:
 
 ```text
-http://127.0.0.1/gym-test/
-http://127.0.0.1/gym-test/signup/
-http://127.0.0.1/gym-test/login/
+http://127.0.0.1:5500/
+http://127.0.0.1:5500/signup/
+http://127.0.0.1:5500/login/
+http://127.0.0.1:5500/admin/
 ```
 
 ## Base de datos
 
-La conexion esta en `config/database.php`. Cuando se abre Login o Sign Up con MySQL encendido, el sistema crea automaticamente:
+La conexion esta en `config/database.php`. Cuando se abre Login, Sign Up, Admin o Dashboard con MySQL encendido, el sistema crea automaticamente:
 
 - Base de datos `powerfit_gym`
 - Tabla `membresias`
 - Tabla `usuarios`
+- Tabla `pagos`
+- Tabla `password_resets`
 - Membresias Basica, Estandar, Premium y VIP
 
 Tambien puedes importar manualmente `database/powerfit_gym.sql` desde phpMyAdmin.
 
-## Actualizar la copia de XAMPP
+## Abrir en XAMPP
 
 Ejecuta:
 
@@ -37,7 +40,7 @@ Ejecuta:
 fix_php.bat
 ```
 
-Ese archivo copia el proyecto a `C:\xampp\htdocs\gym-test` y abre la URL correcta.
+Ese archivo abre la URL correcta usando Apache en el puerto `5500`.
 
 ## GitHub Pages
 

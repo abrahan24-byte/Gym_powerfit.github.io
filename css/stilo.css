@@ -980,6 +980,16 @@ body.menu-is-fixed {
   min-width: 330px;
 }
 
+.refund-form {
+  display: grid;
+  gap: 8px;
+  min-width: 210px;
+}
+
+.refund-form .btn .glyphicon {
+  margin-right: 5px;
+}
+
 /* Pie de pagina */
 footer {
   color: #fff;

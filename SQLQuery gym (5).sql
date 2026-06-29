@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS pagos (
   tipo_pago VARCHAR(30) DEFAULT 'manual',
   tarjeta_ultimos4 VARCHAR(4) DEFAULT NULL,
   titular_tarjeta VARCHAR(100) DEFAULT NULL,
+  motivo_reembolso VARCHAR(255) DEFAULT NULL,
+  fecha_reembolso DATETIME DEFAULT NULL,
   fecha_pago TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_pagos_usuarios
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)

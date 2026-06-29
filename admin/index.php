@@ -43,7 +43,7 @@ function obtenerUsuarios($conexion) {
 
 function obtenerPagos($conexion) {
     return $conexion->query(
-        "SELECT p.id, p.monto, p.metodo, p.estado, p.referencia, p.fecha_pago,
+        "SELECT p.id, p.monto, p.metodo, p.estado, p.referencia, p.motivo_reembolso, p.fecha_reembolso, p.fecha_pago,
                 u.nombre AS usuario, u.correo,
                 m.nombre AS membresia
          FROM pagos p
@@ -58,14 +58,16 @@ function obtenerResumenPagos($conexion) {
     $resumen = array(
         "aprobados" => 0,
         "pendientes" => 0,
-        "rechazados" => 0
+        "rechazados" => 0,
+        "reembolsados" => 0
     );
 
     $consulta = $conexion->query(
         "SELECT
             COALESCE(SUM(CASE WHEN estado = 'aprobado' THEN monto ELSE 0 END), 0) AS aprobados,
             SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) AS pendientes,
-            SUM(CASE WHEN estado = 'rechazado' THEN 1 ELSE 0 END) AS rechazados
+            SUM(CASE WHEN estado = 'rechazado' THEN 1 ELSE 0 END) AS rechazados,
+            SUM(CASE WHEN estado = 'reembolsado' THEN 1 ELSE 0 END) AS reembolsados
          FROM pagos"
     );
     $fila = $consulta->fetch();
@@ -74,6 +76,7 @@ function obtenerResumenPagos($conexion) {
         $resumen["aprobados"] = (float) $fila["aprobados"];
         $resumen["pendientes"] = (int) $fila["pendientes"];
         $resumen["rechazados"] = (int) $fila["rechazados"];
+        $resumen["reembolsados"] = (int) $fila["reembolsados"];
     }
 
     return $resumen;
@@ -82,6 +85,18 @@ function obtenerResumenPagos($conexion) {
 function obtenerMembresiaPorId($conexion, $membresiaId) {
     $consulta = $conexion->prepare("SELECT id, precio FROM membresias WHERE id = :id LIMIT 1");
     $consulta->execute(array(":id" => $membresiaId));
+
+    return $consulta->fetch();
+}
+
+function obtenerPagoPorId($conexion, $pagoId) {
+    $consulta = $conexion->prepare(
+        "SELECT id, estado
+         FROM pagos
+         WHERE id = :id
+         LIMIT 1"
+    );
+    $consulta->execute(array(":id" => $pagoId));
 
     return $consulta->fetch();
 }
@@ -158,6 +173,10 @@ function etiquetaPago($estado) {
         return "danger";
     }
 
+    if ($estado === "reembolsado") {
+        return "info";
+    }
+
     return "warning";
 }
 
@@ -227,6 +246,39 @@ try {
                 $consulta->execute(array(":id" => $usuarioId));
 
                 $mensaje = "Usuario eliminado correctamente.";
+                $tipoMensaje = "success";
+            }
+        }
+    }
+
+    if (!empty($_SESSION["admin_auth"]) && $formularioEnviado && isset($_POST["reembolsar_pago"])) {
+        if (!isset($_POST["csrf_token"]) || !hash_equals($csrfToken, $_POST["csrf_token"])) {
+            $mensaje = "La sesion expiro. Recargue la pagina e intente de nuevo.";
+        } else {
+            $pagoId = isset($_POST["pago_id"]) ? (int) $_POST["pago_id"] : 0;
+            $motivoReembolso = isset($_POST["motivo_reembolso"]) ? trim($_POST["motivo_reembolso"]) : "";
+            $pago = obtenerPagoPorId($conexion, $pagoId);
+
+            if ($pagoId <= 0 || !$pago) {
+                $mensaje = "Seleccione un pago valido para reembolsar.";
+            } elseif ($pago["estado"] === "reembolsado") {
+                $mensaje = "Ese pago ya fue marcado como reembolsado.";
+            } elseif (strlen($motivoReembolso) > 255) {
+                $mensaje = "El motivo del reembolso es demasiado largo.";
+            } else {
+                $consulta = $conexion->prepare(
+                    "UPDATE pagos
+                     SET estado = 'reembolsado',
+                         motivo_reembolso = :motivo,
+                         fecha_reembolso = NOW()
+                     WHERE id = :id"
+                );
+                $consulta->execute(array(
+                    ":motivo" => $motivoReembolso !== "" ? $motivoReembolso : "Reembolso administrativo",
+                    ":id" => $pagoId
+                ));
+
+                $mensaje = "Pago marcado como reembolsado correctamente.";
                 $tipoMensaje = "success";
             }
         }
@@ -561,6 +613,11 @@ $adminAutenticado = !empty($_SESSION["admin_auth"]);
                     <p>Rechazados</p>
                     <strong><?php echo escapar($resumenPagos["rechazados"]); ?></strong>
                   </div>
+                  <div>
+                    <span class="glyphicon glyphicon-retweet" aria-hidden="true"></span>
+                    <p>Reembolsados</p>
+                    <strong><?php echo escapar($resumenPagos["reembolsados"]); ?></strong>
+                  </div>
                 </div>
               </article>
             </div>
@@ -750,12 +807,13 @@ $adminAutenticado = !empty($_SESSION["admin_auth"]);
                     <th>M&eacute;todo</th>
                     <th>Estado</th>
                     <th>Fecha</th>
+                    <th>Reembolso</th>
                   </tr>
                 </thead>
                 <tbody>
                   <?php if (count($pagos) === 0) : ?>
                     <tr>
-                      <td colspan="6" class="text-center">Todav&iacute;a no hay pagos registrados.</td>
+                      <td colspan="7" class="text-center">Todav&iacute;a no hay pagos registrados.</td>
                     </tr>
                   <?php endif; ?>
 
@@ -775,6 +833,26 @@ $adminAutenticado = !empty($_SESSION["admin_auth"]);
                       <td><?php echo escapar(ucfirst($pago["metodo"])); ?></td>
                       <td><span class="label label-<?php echo escapar(etiquetaPago($pago["estado"])); ?>"><?php echo escapar(ucfirst($pago["estado"])); ?></span></td>
                       <td><?php echo escapar(fechaAdmin($pago["fecha_pago"])); ?></td>
+                      <td>
+                        <?php if ($pago["estado"] === "reembolsado") : ?>
+                          <strong>Reembolsado</strong>
+                          <span><?php echo escapar(fechaAdmin($pago["fecha_reembolso"])); ?></span>
+                          <?php if ($pago["motivo_reembolso"]) : ?>
+                            <small><?php echo escapar($pago["motivo_reembolso"]); ?></small>
+                          <?php endif; ?>
+                        <?php else : ?>
+                          <form action="index.php" method="POST" class="refund-form" onsubmit="return confirm('Marcar este pago como reembolsado?');">
+                            <input type="hidden" name="csrf_token" value="<?php echo escapar($csrfToken); ?>">
+                            <input type="hidden" name="reembolsar_pago" value="1">
+                            <input type="hidden" name="pago_id" value="<?php echo escapar($pago["id"]); ?>">
+                            <input name="motivo_reembolso" type="text" maxlength="255" class="form-control input-sm" placeholder="Motivo opcional">
+                            <button type="submit" class="btn btn-warning btn-sm btn-block">
+                              <span class="glyphicon glyphicon-retweet" aria-hidden="true"></span>
+                              Reembolsar
+                            </button>
+                          </form>
+                        <?php endif; ?>
+                      </td>
                     </tr>
                   <?php endforeach; ?>
                 </tbody>

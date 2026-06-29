@@ -52,6 +52,8 @@ function prepararBaseDatos($conexion) {
             tipo_pago VARCHAR(30) DEFAULT 'manual',
             tarjeta_ultimos4 VARCHAR(4) DEFAULT NULL,
             titular_tarjeta VARCHAR(100) DEFAULT NULL,
+            motivo_reembolso VARCHAR(255) DEFAULT NULL,
+            fecha_reembolso DATETIME DEFAULT NULL,
             fecha_pago TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_pagos_usuarios
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
@@ -108,6 +110,16 @@ function prepararBaseDatos($conexion) {
     $columnaTitular = $conexion->query("SHOW COLUMNS FROM pagos LIKE 'titular_tarjeta'")->fetch();
     if (!$columnaTitular) {
         $conexion->exec("ALTER TABLE pagos ADD titular_tarjeta VARCHAR(100) DEFAULT NULL AFTER tarjeta_ultimos4");
+    }
+
+    $columnaMotivoReembolso = $conexion->query("SHOW COLUMNS FROM pagos LIKE 'motivo_reembolso'")->fetch();
+    if (!$columnaMotivoReembolso) {
+        $conexion->exec("ALTER TABLE pagos ADD motivo_reembolso VARCHAR(255) DEFAULT NULL AFTER titular_tarjeta");
+    }
+
+    $columnaFechaReembolso = $conexion->query("SHOW COLUMNS FROM pagos LIKE 'fecha_reembolso'")->fetch();
+    if (!$columnaFechaReembolso) {
+        $conexion->exec("ALTER TABLE pagos ADD fecha_reembolso DATETIME DEFAULT NULL AFTER motivo_reembolso");
     }
 
     try {

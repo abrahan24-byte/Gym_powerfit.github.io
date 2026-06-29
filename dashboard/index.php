@@ -75,6 +75,10 @@ function etiquetaPago($estado) {
         return "danger";
     }
 
+    if ($estado === "reembolsado") {
+        return "info";
+    }
+
     return "warning";
 }
 

@@ -108,6 +108,47 @@ function obtenerResumen($usuarios) {
     return $resumen;
 }
 
+function obtenerUsuariosPorMembresia($usuarios, $membresias) {
+    $grupos = array();
+
+    foreach ($membresias as $membresia) {
+        $grupos[$membresia["codigo"]] = array(
+            "nombre" => $membresia["nombre"],
+            "usuarios" => array()
+        );
+    }
+
+    foreach ($usuarios as $usuario) {
+        $codigo = $usuario["codigo_membresia"];
+
+        if (!isset($grupos[$codigo])) {
+            $grupos[$codigo] = array(
+                "nombre" => $usuario["membresia"],
+                "usuarios" => array()
+            );
+        }
+
+        $grupos[$codigo]["usuarios"][] = $usuario;
+    }
+
+    return $grupos;
+}
+
+function obtenerUsuariosAtrasados($usuarios) {
+    $atrasados = array();
+
+    foreach ($usuarios as $usuario) {
+        $dias = (int) floor((strtotime(date("Y-m-d")) - strtotime($usuario["fecha_vencimiento"])) / 86400);
+
+        if ($dias > 0 || $usuario["estado"] === "suspendida") {
+            $usuario["dias_atraso"] = max($dias, 0);
+            $atrasados[] = $usuario;
+        }
+    }
+
+    return $atrasados;
+}
+
 function etiquetaPago($estado) {
     if ($estado === "aprobado") {
         return "success";
@@ -173,6 +214,24 @@ try {
         }
     }
 
+    if (!empty($_SESSION["admin_auth"]) && $formularioEnviado && isset($_POST["eliminar_usuario"])) {
+        if (!isset($_POST["csrf_token"]) || !hash_equals($csrfToken, $_POST["csrf_token"])) {
+            $mensaje = "La sesion expiro. Recargue la pagina e intente de nuevo.";
+        } else {
+            $usuarioId = isset($_POST["usuario_id"]) ? (int) $_POST["usuario_id"] : 0;
+
+            if ($usuarioId <= 0) {
+                $mensaje = "Seleccione un usuario valido antes de eliminar.";
+            } else {
+                $consulta = $conexion->prepare("DELETE FROM usuarios WHERE id = :id");
+                $consulta->execute(array(":id" => $usuarioId));
+
+                $mensaje = "Usuario eliminado correctamente.";
+                $tipoMensaje = "success";
+            }
+        }
+    }
+
     if (!empty($_SESSION["admin_auth"]) && $formularioEnviado && isset($_POST["registrar_pago"])) {
         if (!isset($_POST["csrf_token"]) || !hash_equals($csrfToken, $_POST["csrf_token"])) {
             $mensaje = "La sesion expiro. Recargue la pagina e intente de nuevo.";
@@ -233,6 +292,8 @@ try {
     $pagos = obtenerPagos($conexion);
     $resumen = obtenerResumen($usuarios);
     $resumenPagos = obtenerResumenPagos($conexion);
+    $usuariosPorMembresia = obtenerUsuariosPorMembresia($usuarios, $membresias);
+    $usuariosAtrasados = obtenerUsuariosAtrasados($usuarios);
 } catch (Exception $e) {
     if (isset($conexion) && $conexion->inTransaction()) {
         $conexion->rollBack();
@@ -243,6 +304,8 @@ try {
     $pagos = array();
     $resumen = array("total" => 0, "activas" => 0, "vencidas" => 0, "ingreso" => 0);
     $resumenPagos = array("aprobados" => 0, "pendientes" => 0, "rechazados" => 0);
+    $usuariosPorMembresia = array();
+    $usuariosAtrasados = array();
     $mensaje = "No se pudo cargar el panel administrativo.";
 }
 
@@ -503,11 +566,87 @@ $adminAutenticado = !empty($_SESSION["admin_auth"]);
             </div>
           </div>
 
+          <article class="dashboard-card membership-groups-card">
+            <div class="dashboard-card-header">
+              <div>
+                <p>Divisiones</p>
+                <h3>Clientes por membres&iacute;a</h3>
+              </div>
+            </div>
+
+            <div class="membership-groups">
+              <?php foreach ($usuariosPorMembresia as $codigo => $grupo) : ?>
+                <section class="membership-group membership-<?php echo escapar($codigo); ?>">
+                  <h4><?php echo escapar($grupo["nombre"]); ?></h4>
+                  <strong><?php echo escapar(count($grupo["usuarios"])); ?> clientes</strong>
+
+                  <?php if (count($grupo["usuarios"]) === 0) : ?>
+                    <p>No hay clientes en esta membres&iacute;a.</p>
+                  <?php else : ?>
+                    <ul>
+                      <?php foreach ($grupo["usuarios"] as $usuarioGrupo) : ?>
+                        <li>
+                          <span><?php echo escapar($usuarioGrupo["nombre"]); ?></span>
+                          <small><?php echo escapar($usuarioGrupo["estado"]); ?></small>
+                        </li>
+                      <?php endforeach; ?>
+                    </ul>
+                  <?php endif; ?>
+                </section>
+              <?php endforeach; ?>
+            </div>
+          </article>
+
+          <article class="dashboard-card admin-table-card">
+            <div class="dashboard-card-header">
+              <div>
+                <p>Atrasos</p>
+                <h3>Pagos atrasados por usuario</h3>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-striped admin-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Membres&iacute;a</th>
+                    <th>Estado</th>
+                    <th>D&iacute;as de atraso</th>
+                    <th>Monto pendiente</th>
+                    <th>Vencimiento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if (count($usuariosAtrasados) === 0) : ?>
+                    <tr>
+                      <td colspan="6" class="text-center">No hay pagos atrasados registrados.</td>
+                    </tr>
+                  <?php endif; ?>
+
+                  <?php foreach ($usuariosAtrasados as $usuarioAtrasado) : ?>
+                    <tr>
+                      <td>
+                        <strong><?php echo escapar($usuarioAtrasado["nombre"]); ?></strong>
+                        <span><?php echo escapar($usuarioAtrasado["correo"]); ?></span>
+                      </td>
+                      <td><?php echo escapar($usuarioAtrasado["membresia"]); ?></td>
+                      <td><span class="label label-danger"><?php echo escapar($usuarioAtrasado["estado"] === "suspendida" ? "Suspendida" : "Vencida"); ?></span></td>
+                      <td><?php echo escapar($usuarioAtrasado["dias_atraso"]); ?></td>
+                      <td>$<?php echo escapar(number_format((float) $usuarioAtrasado["precio"], 2)); ?></td>
+                      <td><?php echo escapar(fechaAdmin($usuarioAtrasado["fecha_vencimiento"])); ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
           <article class="dashboard-card admin-table-card">
             <div class="dashboard-card-header">
               <div>
                 <p>Usuarios registrados</p>
-                <h3>Gestión de membres&iacute;as</h3>
+                <h3>Gesti&oacute;n de membres&iacute;as</h3>
               </div>
             </div>
 
@@ -573,6 +712,16 @@ $adminAutenticado = !empty($_SESSION["admin_auth"]);
                           <button type="submit" class="btn btn-gym btn-sm">
                             <span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>
                             Guardar
+                          </button>
+                        </form>
+
+                        <form action="index.php" method="POST" class="admin-delete-form" onsubmit="return confirm('Esta accion eliminara el usuario y sus pagos. Desea continuar?');">
+                          <input type="hidden" name="csrf_token" value="<?php echo escapar($csrfToken); ?>">
+                          <input type="hidden" name="eliminar_usuario" value="1">
+                          <input type="hidden" name="usuario_id" value="<?php echo escapar($usuario["id"]); ?>">
+                          <button type="submit" class="btn btn-danger btn-sm btn-block">
+                            <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                            Eliminar cuenta
                           </button>
                         </form>
                       </td>

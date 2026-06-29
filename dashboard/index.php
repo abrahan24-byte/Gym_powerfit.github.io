@@ -8,6 +8,20 @@ if (empty($_SESSION["user_id"])) {
     exit;
 }
 
+if (empty($_SESSION["dashboard_csrf_token"])) {
+    $_SESSION["dashboard_csrf_token"] = bin2hex(random_bytes(32));
+}
+
+$csrfToken = $_SESSION["dashboard_csrf_token"];
+$mensajePago = "";
+$tipoMensajePago = "danger";
+$formularioPagoEnviado = $_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["pagar_membresia"]);
+$mostrarPanelPago = isset($_GET["pago"]) || $formularioPagoEnviado;
+$numeroTarjeta = isset($_POST["numero_tarjeta"]) ? trim($_POST["numero_tarjeta"]) : "";
+$fechaTarjeta = isset($_POST["fecha_tarjeta"]) ? trim($_POST["fecha_tarjeta"]) : "";
+$cvvTarjeta = isset($_POST["cvv_tarjeta"]) ? trim($_POST["cvv_tarjeta"]) : "";
+$titularTarjeta = isset($_POST["titular_tarjeta"]) ? trim($_POST["titular_tarjeta"]) : "";
+
 function escapar($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, "UTF-8");
 }
@@ -23,6 +37,7 @@ function formatoFecha($fecha) {
 function obtenerDatosUsuario($conexion, $usuarioId) {
     $consulta = $conexion->prepare(
         "SELECT u.id, u.nombre, u.correo, u.estado, u.fecha_vencimiento, u.fecha_registro,
+                u.membresia_id,
                 m.codigo AS codigo_membresia, m.nombre AS membresia,
                 m.precio, m.descripcion
          FROM usuarios u
@@ -37,7 +52,8 @@ function obtenerDatosUsuario($conexion, $usuarioId) {
 
 function obtenerPagosUsuario($conexion, $usuarioId) {
     $consulta = $conexion->prepare(
-        "SELECT p.monto, p.metodo, p.estado, p.referencia, p.fecha_pago,
+        "SELECT p.monto, p.metodo, p.estado, p.referencia, p.tipo_pago,
+                p.tarjeta_ultimos4, p.fecha_pago,
                 m.nombre AS membresia
          FROM pagos p
          INNER JOIN membresias m ON m.id = p.membresia_id
@@ -62,6 +78,14 @@ function etiquetaPago($estado) {
     return "warning";
 }
 
+function soloDigitos($valor) {
+    return preg_replace("/\D+/", "", $valor);
+}
+
+function generarReferenciaPago($usuarioId) {
+    return "SIM-" . date("YmdHis") . "-" . (int) $usuarioId;
+}
+
 try {
     $conexion = obtenerConexion();
     $usuario = obtenerDatosUsuario($conexion, $_SESSION["user_id"]);
@@ -72,8 +96,66 @@ try {
         exit;
     }
 
+    if ($formularioPagoEnviado) {
+        $digitosTarjeta = soloDigitos($numeroTarjeta);
+        $digitosCvv = soloDigitos($cvvTarjeta);
+
+        if (!isset($_POST["csrf_token"]) || !hash_equals($csrfToken, $_POST["csrf_token"])) {
+            $mensajePago = "La sesion expiro. Recargue la pagina e intente de nuevo.";
+        } elseif ($numeroTarjeta !== "" && (strlen($digitosTarjeta) < 12 || strlen($digitosTarjeta) > 19)) {
+            $mensajePago = "Revise el numero de tarjeta de prueba.";
+        } elseif ($fechaTarjeta !== "" && !preg_match("/^(0[1-9]|1[0-2])\/\d{2}$/", $fechaTarjeta)) {
+            $mensajePago = "Use el formato MM/AA para la fecha de prueba.";
+        } elseif ($cvvTarjeta !== "" && (strlen($digitosCvv) < 3 || strlen($digitosCvv) > 4)) {
+            $mensajePago = "Revise el CVV de prueba.";
+        } elseif (strlen($titularTarjeta) > 100) {
+            $mensajePago = "El nombre del titular es demasiado largo.";
+        } else {
+            $referenciaPago = generarReferenciaPago($usuario["id"]);
+            $ultimos4 = strlen($digitosTarjeta) >= 4 ? substr($digitosTarjeta, -4) : null;
+
+            $conexion->beginTransaction();
+
+            $consultaPago = $conexion->prepare(
+                "INSERT INTO pagos (usuario_id, membresia_id, monto, metodo, estado, referencia, tipo_pago, tarjeta_ultimos4, titular_tarjeta)
+                 VALUES (:usuario_id, :membresia_id, :monto, 'tarjeta', 'aprobado', :referencia, 'tarjeta_simulada', :tarjeta_ultimos4, :titular_tarjeta)"
+            );
+            $consultaPago->execute(array(
+                ":usuario_id" => $usuario["id"],
+                ":membresia_id" => $usuario["membresia_id"],
+                ":monto" => $usuario["precio"],
+                ":referencia" => $referenciaPago,
+                ":tarjeta_ultimos4" => $ultimos4,
+                ":titular_tarjeta" => $titularTarjeta !== "" ? $titularTarjeta : null
+            ));
+
+            $consultaUsuario = $conexion->prepare(
+                "UPDATE usuarios
+                 SET estado = 'activa',
+                     fecha_vencimiento = DATE_ADD(GREATEST(CURRENT_DATE, COALESCE(fecha_vencimiento, CURRENT_DATE)), INTERVAL 30 DAY)
+                 WHERE id = :usuario_id"
+            );
+            $consultaUsuario->execute(array(":usuario_id" => $usuario["id"]));
+
+            $conexion->commit();
+
+            $mensajePago = "Pago simulado aprobado. Su membresia fue renovada por 30 dias.";
+            $tipoMensajePago = "success";
+            $mostrarPanelPago = true;
+            $numeroTarjeta = "";
+            $fechaTarjeta = "";
+            $cvvTarjeta = "";
+            $titularTarjeta = "";
+            $usuario = obtenerDatosUsuario($conexion, $_SESSION["user_id"]);
+        }
+    }
+
     $pagos = obtenerPagosUsuario($conexion, $_SESSION["user_id"]);
 } catch (Exception $e) {
+    if (isset($conexion) && $conexion->inTransaction()) {
+        $conexion->rollBack();
+    }
+
     header("Location: ../login/error.html");
     exit;
 }
@@ -85,6 +167,9 @@ $claseEstado = $estadoMembresia === "Activa" ? "success" : "danger";
 $diasTexto = $diasRestantes >= 0 ? $diasRestantes . " dias restantes" : abs($diasRestantes) . " dias vencida";
 $inicial = strtoupper(substr($usuario["nombre"], 0, 1));
 $ultimoPago = count($pagos) > 0 ? $pagos[0] : null;
+$tieneAtraso = $diasRestantes < 0 || $usuario["estado"] !== "activa";
+$montoPago = number_format((float) $usuario["precio"], 2);
+$referenciaVista = "SIM-" . date("Ymd") . "-" . (int) $usuario["id"];
 
 $_SESSION["user_name"] = $usuario["nombre"];
 $_SESSION["membership"] = $usuario["membresia"];
@@ -148,6 +233,12 @@ $_SESSION["membership"] = $usuario["membresia"];
       </section>
 
       <section class="container dashboard-content">
+        <?php if ($mensajePago !== "") : ?>
+          <div class="alert alert-<?php echo escapar($tipoMensajePago); ?>" role="alert">
+            <?php echo escapar($mensajePago); ?>
+          </div>
+        <?php endif; ?>
+
         <div class="row dashboard-metrics">
           <div class="col-md-3 col-sm-6">
             <article class="dashboard-card metric-card">
@@ -207,6 +298,10 @@ $_SESSION["membership"] = $usuario["membresia"];
               </dl>
 
               <div class="dashboard-actions">
+                <button type="button" class="btn btn-gym" data-toggle="collapse" data-target="#paymentPanel" aria-expanded="<?php echo $mostrarPanelPago ? 'true' : 'false'; ?>" aria-controls="paymentPanel">
+                  <span class="glyphicon glyphicon-credit-card" aria-hidden="true"></span>
+                  Pagar Membresia
+                </button>
                 <a href="../index.html#membresias" class="btn btn-gym">
                   <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                   Cambiar plan
@@ -253,6 +348,106 @@ $_SESSION["membership"] = $usuario["membresia"];
           </div>
         </div>
 
+        <section id="paymentPanel" class="payment-checkout collapse <?php echo $mostrarPanelPago ? 'in' : ''; ?>">
+          <div class="payment-checkout-grid">
+            <aside class="payment-receipt">
+              <div class="payment-brand">PowerFit Gym</div>
+              <p class="payment-receipt-plan"><?php echo escapar($usuario["membresia"]); ?></p>
+              <div class="payment-amount">
+                <span><?php echo escapar($montoPago); ?></span>
+                <small>USD</small>
+              </div>
+
+              <dl>
+                <dt>ID de pago</dt>
+                <dd><?php echo escapar($referenciaVista); ?></dd>
+                <dt>Cliente</dt>
+                <dd><?php echo escapar($usuario["nombre"]); ?></dd>
+                <dt>Renovaci&oacute;n</dt>
+                <dd>30 d&iacute;as de membres&iacute;a</dd>
+              </dl>
+            </aside>
+
+            <article class="payment-form-panel">
+              <div class="dashboard-card-header payment-form-header">
+                <div>
+                  <p>Pago simulado</p>
+                  <h3>Seleccionar m&eacute;todo de pago</h3>
+                </div>
+                <span class="payment-language">SPA</span>
+              </div>
+
+              <div class="payment-methods">
+                <button type="button" class="payment-method is-muted" disabled>Apple Pay</button>
+                <button type="button" class="payment-method is-muted" disabled>Google Pay</button>
+                <button type="button" class="payment-method is-active" disabled>
+                  <span class="glyphicon glyphicon-credit-card" aria-hidden="true"></span>
+                  Tarjeta
+                </button>
+              </div>
+
+              <form action="index.php#paymentPanel" method="POST" class="simulated-card-form" autocomplete="off">
+                <input type="hidden" name="csrf_token" value="<?php echo escapar($csrfToken); ?>">
+                <input type="hidden" name="pagar_membresia" value="1">
+
+                <div class="form-group">
+                  <label for="NumeroTarjeta">N&uacute;mero de tarjeta</label>
+                  <input name="numero_tarjeta" type="text" inputmode="numeric" maxlength="23" class="form-control input-lg" id="NumeroTarjeta" placeholder="4567 7809 3027 2132" value="<?php echo escapar($numeroTarjeta); ?>">
+                </div>
+
+                <div class="payment-card-row">
+                  <div class="form-group">
+                    <label for="FechaTarjeta">Vencimiento</label>
+                    <input name="fecha_tarjeta" type="text" maxlength="5" class="form-control input-lg" id="FechaTarjeta" placeholder="12/23" value="<?php echo escapar($fechaTarjeta); ?>">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="CvvTarjeta">CVV</label>
+                    <input name="cvv_tarjeta" type="text" inputmode="numeric" maxlength="4" class="form-control input-lg" id="CvvTarjeta" placeholder="130" value="<?php echo escapar($cvvTarjeta); ?>">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="TitularTarjeta">Nombre del titular</label>
+                  <input name="titular_tarjeta" type="text" maxlength="100" class="form-control input-lg" id="TitularTarjeta" placeholder="Nombre del titular de la tarjeta" value="<?php echo escapar($titularTarjeta); ?>">
+                </div>
+
+                <p class="payment-note">Los datos de tarjeta son opcionales y de prueba. No se guarda el n&uacute;mero completo.</p>
+
+                <button type="submit" class="btn btn-gym btn-lg btn-block payment-submit">
+                  Pagar <?php echo escapar($montoPago); ?> USD
+                  <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
+                </button>
+              </form>
+            </article>
+          </div>
+        </section>
+
+        <article class="dashboard-card overdue-card">
+          <div class="dashboard-card-header">
+            <div>
+              <p>Atrasos</p>
+              <h3>Estado de atrasos de pago</h3>
+            </div>
+            <span class="label label-<?php echo $tieneAtraso ? 'danger' : 'success'; ?>">
+              <?php echo $tieneAtraso ? 'Atenci&oacute;n requerida' : 'Al d&iacute;a'; ?>
+            </span>
+          </div>
+
+          <?php if ($tieneAtraso) : ?>
+            <dl class="membership-details payment-details">
+              <dt>D&iacute;as de atraso</dt>
+              <dd><?php echo escapar(abs($diasRestantes)); ?> d&iacute;as</dd>
+              <dt>Monto pendiente</dt>
+              <dd>$<?php echo escapar($montoPago); ?></dd>
+              <dt>Fecha vencida</dt>
+              <dd><?php echo escapar(formatoFecha($usuario["fecha_vencimiento"])); ?></dd>
+            </dl>
+          <?php else : ?>
+            <p class="dashboard-description">No tiene pagos atrasados. Su pr&oacute;xima renovaci&oacute;n vence el <?php echo escapar(formatoFecha($usuario["fecha_vencimiento"])); ?>.</p>
+          <?php endif; ?>
+        </article>
+
         <article class="dashboard-card admin-table-card">
           <div class="dashboard-card-header">
             <div>
@@ -284,7 +479,12 @@ $_SESSION["membership"] = $usuario["membresia"];
                   <tr>
                     <td><?php echo escapar($pago["membresia"]); ?></td>
                     <td>$<?php echo escapar(number_format((float) $pago["monto"], 2)); ?></td>
-                    <td><?php echo escapar(ucfirst($pago["metodo"])); ?></td>
+                    <td>
+                      <?php echo escapar(ucfirst($pago["metodo"])); ?>
+                      <?php if (!empty($pago["tarjeta_ultimos4"])) : ?>
+                        <br><small>**** <?php echo escapar($pago["tarjeta_ultimos4"]); ?></small>
+                      <?php endif; ?>
+                    </td>
                     <td><span class="label label-<?php echo escapar(etiquetaPago($pago["estado"])); ?>"><?php echo escapar(ucfirst($pago["estado"])); ?></span></td>
                     <td><?php echo escapar($pago["referencia"] ? $pago["referencia"] : "No aplica"); ?></td>
                     <td><?php echo escapar(formatoFecha($pago["fecha_pago"])); ?></td>

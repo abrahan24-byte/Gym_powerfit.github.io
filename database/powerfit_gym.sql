@@ -46,6 +46,9 @@ CREATE TABLE IF NOT EXISTS pagos (
   metodo VARCHAR(30) NOT NULL,
   estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
   referencia VARCHAR(100) DEFAULT NULL,
+  tipo_pago VARCHAR(30) DEFAULT 'manual',
+  tarjeta_ultimos4 VARCHAR(4) DEFAULT NULL,
+  titular_tarjeta VARCHAR(100) DEFAULT NULL,
   fecha_pago TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_pagos_usuarios
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
@@ -69,9 +72,3 @@ CREATE TABLE IF NOT EXISTS password_resets (
     ON UPDATE CASCADE
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
-
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT NULL AFTER correo;
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS estado VARCHAR(20) NOT NULL DEFAULT 'activa' AFTER membresia_id;
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_vencimiento DATE DEFAULT NULL AFTER estado;
-ALTER TABLE usuarios MODIFY correo VARCHAR(255) NOT NULL;
-UPDATE usuarios SET fecha_vencimiento = DATE_ADD(DATE(fecha_registro), INTERVAL 30 DAY) WHERE fecha_vencimiento IS NULL;

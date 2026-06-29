@@ -757,6 +757,229 @@ body.menu-is-fixed {
   padding-top: 0;
 }
 
+/* Pago simulado del cliente */
+.payment-checkout {
+  margin-bottom: 24px;
+}
+
+.payment-checkout-grid {
+  background: #fff;
+  border: 1px solid #dde4eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(16, 24, 32, 0.08);
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  overflow: hidden;
+}
+
+.payment-receipt {
+  background: #050607;
+  color: #fff;
+  min-height: 520px;
+  overflow: hidden;
+  padding: 42px;
+  position: relative;
+}
+
+.payment-receipt::before,
+.payment-receipt::after {
+  background: rgba(255, 255, 255, 0.035);
+  border-radius: 50%;
+  content: "";
+  height: 280px;
+  position: absolute;
+  width: 280px;
+}
+
+.payment-receipt::before {
+  right: -72px;
+  top: -62px;
+}
+
+.payment-receipt::after {
+  bottom: 84px;
+  left: 90px;
+}
+
+.payment-brand,
+.payment-receipt-plan,
+.payment-amount,
+.payment-receipt dl {
+  position: relative;
+  z-index: 1;
+}
+
+.payment-brand {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.payment-receipt-plan {
+  color: #f2c94c;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.payment-amount {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  margin: 48px 0 190px;
+}
+
+.payment-amount span {
+  font-size: 58px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.payment-amount small {
+  font-size: 18px;
+}
+
+.payment-receipt dl {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0;
+  padding-top: 22px;
+}
+
+.payment-receipt dt {
+  color: #f2c94c;
+  margin-top: 14px;
+}
+
+.payment-receipt dd {
+  color: #fff;
+  margin-left: 0;
+  word-break: break-word;
+}
+
+.payment-form-panel {
+  padding: 42px 48px;
+}
+
+.payment-form-header {
+  align-items: center;
+}
+
+.payment-language {
+  color: #101820;
+  font-weight: 700;
+}
+
+.payment-methods {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 28px;
+}
+
+.payment-method {
+  background: #050607;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  min-height: 54px;
+}
+
+.payment-method.is-active {
+  background: #fff;
+  border: 2px solid #050607;
+  color: #101820;
+  grid-column: 1 / 2;
+}
+
+.simulated-card-form label {
+  color: #101820;
+}
+
+.simulated-card-form .form-control {
+  background: #eef0f3;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.payment-card-row {
+  display: grid;
+  gap: 2px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.payment-note {
+  color: #69727d;
+  font-size: 13px;
+}
+
+.payment-submit {
+  margin-top: 18px;
+}
+
+.payment-submit .glyphicon {
+  margin-left: 8px;
+}
+
+.overdue-card .label {
+  display: inline-block;
+  padding: 8px 10px;
+}
+
+.membership-groups {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.membership-group {
+  background: #f6f8fa;
+  border: 1px solid #e4e9ef;
+  border-radius: 8px;
+  border-top: 5px solid #101820;
+  padding: 16px;
+}
+
+.membership-group h4 {
+  color: #101820;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+.membership-group strong {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.membership-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.membership-group li {
+  border-top: 1px solid #e4e9ef;
+  padding: 9px 0;
+}
+
+.membership-group li span,
+.membership-group li small {
+  display: block;
+}
+
+.membership-group li small {
+  color: #69727d;
+  text-transform: capitalize;
+}
+
+.admin-delete-form {
+  margin-top: 8px;
+  min-width: 330px;
+}
+
 /* Pie de pagina */
 footer {
   color: #fff;
@@ -883,7 +1106,27 @@ footer {
   }
 
   .admin-payment-grid,
-  .payment-summary {
+  .payment-summary,
+  .membership-groups,
+  .payment-checkout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-receipt {
+    min-height: 360px;
+    padding: 28px;
+  }
+
+  .payment-amount {
+    margin: 32px 0 120px;
+  }
+
+  .payment-form-panel {
+    padding: 28px;
+  }
+
+  .payment-methods,
+  .payment-card-row {
     grid-template-columns: 1fr;
   }
 }

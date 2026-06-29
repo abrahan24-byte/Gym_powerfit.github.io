@@ -49,6 +49,9 @@ function prepararBaseDatos($conexion) {
             metodo VARCHAR(30) NOT NULL,
             estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
             referencia VARCHAR(100) DEFAULT NULL,
+            tipo_pago VARCHAR(30) DEFAULT 'manual',
+            tarjeta_ultimos4 VARCHAR(4) DEFAULT NULL,
+            titular_tarjeta VARCHAR(100) DEFAULT NULL,
             fecha_pago TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_pagos_usuarios
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
@@ -90,6 +93,21 @@ function prepararBaseDatos($conexion) {
     if (!$columnaVencimiento) {
         $conexion->exec("ALTER TABLE usuarios ADD fecha_vencimiento DATE DEFAULT NULL AFTER estado");
         $conexion->exec("UPDATE usuarios SET fecha_vencimiento = DATE_ADD(DATE(fecha_registro), INTERVAL 30 DAY) WHERE fecha_vencimiento IS NULL");
+    }
+
+    $columnaTipoPago = $conexion->query("SHOW COLUMNS FROM pagos LIKE 'tipo_pago'")->fetch();
+    if (!$columnaTipoPago) {
+        $conexion->exec("ALTER TABLE pagos ADD tipo_pago VARCHAR(30) DEFAULT 'manual' AFTER referencia");
+    }
+
+    $columnaTarjeta = $conexion->query("SHOW COLUMNS FROM pagos LIKE 'tarjeta_ultimos4'")->fetch();
+    if (!$columnaTarjeta) {
+        $conexion->exec("ALTER TABLE pagos ADD tarjeta_ultimos4 VARCHAR(4) DEFAULT NULL AFTER tipo_pago");
+    }
+
+    $columnaTitular = $conexion->query("SHOW COLUMNS FROM pagos LIKE 'titular_tarjeta'")->fetch();
+    if (!$columnaTitular) {
+        $conexion->exec("ALTER TABLE pagos ADD titular_tarjeta VARCHAR(100) DEFAULT NULL AFTER tarjeta_ultimos4");
     }
 
     try {

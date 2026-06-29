@@ -85,11 +85,15 @@ if ($formularioEnviado) {
                         ":membresia_id" => $membresiaId
                     ));
 
-                    $mensaje = "Usuario registrado correctamente en la membresia " . $planesMembresia[$membresia] . ". Ahora puede iniciar sesion.";
-                    $tipoMensaje = "success";
-                    $nombre = "";
-                    $correo = "";
-                    $password = "";
+                    $nuevoUsuarioId = (int) $conexion->lastInsertId();
+
+                    if ($nuevoUsuarioId <= 0) {
+                        $mensaje = "No se pudo confirmar el registro. Intente nuevamente.";
+                    } else {
+                        $_SESSION["login_flash"] = "Usuario registrado correctamente en la membresia " . $planesMembresia[$membresia] . ". Ahora puede iniciar sesion.";
+                        header("Location: ../login/");
+                        exit;
+                    }
                 }
             }
         } catch (Exception $e) {

@@ -18,6 +18,7 @@ $password = isset($_POST["Password"]) ? $_POST["Password"] : "";
 $mensaje = "";
 $tipoMensaje = "danger";
 $formularioEnviado = $_SERVER["REQUEST_METHOD"] === "POST";
+$mostrarMensaje = false;
 $planesMembresia = array(
     "basica" => "Basica",
     "estandar" => "Estandar",
@@ -78,6 +79,11 @@ if ($formularioEnviado) {
             exit;
         }
     }
+} elseif (!empty($_SESSION["login_flash"])) {
+    $mensaje = $_SESSION["login_flash"];
+    $tipoMensaje = "success";
+    $mostrarMensaje = true;
+    unset($_SESSION["login_flash"]);
 }
 ?>
 <!DOCTYPE html>
@@ -134,7 +140,7 @@ if ($formularioEnviado) {
           <p>Ingrese con su correo electr&oacute;nico y contrase&ntilde;a registrados.</p>
         </div>
 
-        <?php if ($formularioEnviado) : ?>
+        <?php if ($formularioEnviado || $mostrarMensaje) : ?>
           <div class="alert alert-<?php echo htmlspecialchars($tipoMensaje, ENT_QUOTES, "UTF-8"); ?>" role="alert">
             <?php echo htmlspecialchars($mensaje, ENT_QUOTES, "UTF-8"); ?>
           </div>

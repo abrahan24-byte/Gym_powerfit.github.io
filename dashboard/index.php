@@ -245,7 +245,6 @@ $_SESSION["membership"] = $usuario["membresia"];
         <div class="collapse navbar-collapse" id="dashboardNavbar">
           <ul class="nav navbar-nav navbar-right">
             <li class="active"><a href="../dashboard/">Dashboard</a></li>
-            <li><a href="../index.html#membresias">Membres&iacute;as</a></li>
             <li><a href="../index.html#contacto">Contacto</a></li>
             <li><a href="logout.php">Cerrar sesi&oacute;n</a></li>
           </ul>

@@ -17,6 +17,8 @@ $mensajePago = "";
 $tipoMensajePago = "danger";
 $formularioPagoEnviado = $_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["pagar_membresia"]);
 $mostrarPanelPago = isset($_GET["pago"]) || $formularioPagoEnviado;
+$mostrarMenuMembresias = isset($_GET["cambiar_plan"]) || isset($_GET["membresia_id"]) || $formularioPagoEnviado;
+$membresiaSeleccionadaId = isset($_POST["membresia_id"]) ? (int) $_POST["membresia_id"] : (isset($_GET["membresia_id"]) ? (int) $_GET["membresia_id"] : 0);
 $numeroTarjeta = isset($_POST["numero_tarjeta"]) ? trim($_POST["numero_tarjeta"]) : "";
 $fechaTarjeta = isset($_POST["fecha_tarjeta"]) ? trim($_POST["fecha_tarjeta"]) : "";
 $cvvTarjeta = isset($_POST["cvv_tarjeta"]) ? trim($_POST["cvv_tarjeta"]) : "";
@@ -48,6 +50,10 @@ function obtenerDatosUsuario($conexion, $usuarioId) {
     $consulta->execute(array(":id" => $usuarioId));
 
     return $consulta->fetch();
+}
+
+function obtenerMembresias($conexion) {
+    return $conexion->query("SELECT id, codigo, nombre, precio, descripcion FROM membresias ORDER BY precio ASC")->fetchAll();
 }
 
 function obtenerPagosUsuario($conexion, $usuarioId) {
@@ -93,6 +99,12 @@ function generarReferenciaPago($usuarioId) {
 try {
     $conexion = obtenerConexion();
     $usuario = obtenerDatosUsuario($conexion, $_SESSION["user_id"]);
+    $membresias = obtenerMembresias($conexion);
+    $membresiasPorId = array();
+
+    foreach ($membresias as $membresia) {
+        $membresiasPorId[(int) $membresia["id"]] = $membresia;
+    }
 
     if (!$usuario) {
         session_destroy();
@@ -100,12 +112,20 @@ try {
         exit;
     }
 
+    if ($membresiaSeleccionadaId <= 0) {
+        $membresiaSeleccionadaId = (int) $usuario["membresia_id"];
+    }
+
+    $membresiaSeleccionada = isset($membresiasPorId[$membresiaSeleccionadaId]) ? $membresiasPorId[$membresiaSeleccionadaId] : null;
+
     if ($formularioPagoEnviado) {
         $digitosTarjeta = soloDigitos($numeroTarjeta);
         $digitosCvv = soloDigitos($cvvTarjeta);
 
         if (!isset($_POST["csrf_token"]) || !hash_equals($csrfToken, $_POST["csrf_token"])) {
             $mensajePago = "La sesion expiro. Recargue la pagina e intente de nuevo.";
+        } elseif (!$membresiaSeleccionada) {
+            $mensajePago = "Seleccione una membresia valida.";
         } elseif ($numeroTarjeta !== "" && (strlen($digitosTarjeta) < 12 || strlen($digitosTarjeta) > 19)) {
             $mensajePago = "Revise el numero de tarjeta de prueba.";
         } elseif ($fechaTarjeta !== "" && !preg_match("/^(0[1-9]|1[0-2])\/\d{2}$/", $fechaTarjeta)) {
@@ -126,8 +146,8 @@ try {
             );
             $consultaPago->execute(array(
                 ":usuario_id" => $usuario["id"],
-                ":membresia_id" => $usuario["membresia_id"],
-                ":monto" => $usuario["precio"],
+                ":membresia_id" => $membresiaSeleccionada["id"],
+                ":monto" => $membresiaSeleccionada["precio"],
                 ":referencia" => $referenciaPago,
                 ":tarjeta_ultimos4" => $ultimos4,
                 ":titular_tarjeta" => $titularTarjeta !== "" ? $titularTarjeta : null
@@ -135,15 +155,19 @@ try {
 
             $consultaUsuario = $conexion->prepare(
                 "UPDATE usuarios
-                 SET estado = 'activa',
+                 SET membresia_id = :membresia_id,
+                     estado = 'activa',
                      fecha_vencimiento = DATE_ADD(GREATEST(CURRENT_DATE, COALESCE(fecha_vencimiento, CURRENT_DATE)), INTERVAL 30 DAY)
                  WHERE id = :usuario_id"
             );
-            $consultaUsuario->execute(array(":usuario_id" => $usuario["id"]));
+            $consultaUsuario->execute(array(
+                ":membresia_id" => $membresiaSeleccionada["id"],
+                ":usuario_id" => $usuario["id"]
+            ));
 
             $conexion->commit();
 
-            $mensajePago = "Pago simulado aprobado. Su membresia fue renovada por 30 dias.";
+            $mensajePago = "Pago simulado aprobado. Su membresia fue actualizada a " . $membresiaSeleccionada["nombre"] . " y renovada por 30 dias.";
             $tipoMensajePago = "success";
             $mostrarPanelPago = true;
             $numeroTarjeta = "";
@@ -151,6 +175,8 @@ try {
             $cvvTarjeta = "";
             $titularTarjeta = "";
             $usuario = obtenerDatosUsuario($conexion, $_SESSION["user_id"]);
+            $membresiaSeleccionadaId = (int) $usuario["membresia_id"];
+            $membresiaSeleccionada = isset($membresiasPorId[$membresiaSeleccionadaId]) ? $membresiasPorId[$membresiaSeleccionadaId] : null;
         }
     }
 
@@ -172,7 +198,20 @@ $diasTexto = $diasRestantes >= 0 ? $diasRestantes . " dias restantes" : abs($dia
 $inicial = strtoupper(substr($usuario["nombre"], 0, 1));
 $ultimoPago = count($pagos) > 0 ? $pagos[0] : null;
 $tieneAtraso = $diasRestantes < 0 || $usuario["estado"] !== "activa";
-$montoPago = number_format((float) $usuario["precio"], 2);
+$membresiaActual = array(
+    "id" => $usuario["membresia_id"],
+    "codigo" => $usuario["codigo_membresia"],
+    "nombre" => $usuario["membresia"],
+    "precio" => $usuario["precio"],
+    "descripcion" => $usuario["descripcion"]
+);
+
+if (empty($membresiaSeleccionada)) {
+    $membresiaSeleccionada = $membresiaActual;
+}
+
+$montoMembresiaActual = number_format((float) $usuario["precio"], 2);
+$montoPago = number_format((float) $membresiaSeleccionada["precio"], 2);
 $referenciaVista = "SIM-" . date("Ymd") . "-" . (int) $usuario["id"];
 
 $_SESSION["user_name"] = $usuario["nombre"];
@@ -306,14 +345,40 @@ $_SESSION["membership"] = $usuario["membresia"];
                   <span class="glyphicon glyphicon-credit-card" aria-hidden="true"></span>
                   Pagar Membresia
                 </button>
-                <a href="../index.html#membresias" class="btn btn-gym">
+                <button type="button" class="btn btn-gym" data-toggle="collapse" data-target="#membershipMenu" aria-expanded="<?php echo $mostrarMenuMembresias ? 'true' : 'false'; ?>" aria-controls="membershipMenu">
                   <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                   Cambiar plan
-                </a>
+                </button>
                 <a href="../index.html#contacto" class="btn btn-default">
                   <span class="glyphicon glyphicon-envelope" aria-hidden="true"></span>
                   Contactar gimnasio
                 </a>
+              </div>
+
+              <div id="membershipMenu" class="membership-change-menu collapse <?php echo $mostrarMenuMembresias ? 'in' : ''; ?>">
+                <div class="membership-change-heading">
+                  <strong>Tipos de membres&iacute;a</strong>
+                  <span>Plan seleccionado: <?php echo escapar($membresiaSeleccionada["nombre"]); ?></span>
+                </div>
+
+                <div class="membership-change-options">
+                  <?php foreach ($membresias as $membresia) : ?>
+                    <?php
+                      $esActual = (int) $usuario["membresia_id"] === (int) $membresia["id"];
+                      $estaSeleccionada = (int) $membresiaSeleccionada["id"] === (int) $membresia["id"];
+                    ?>
+                    <a href="index.php?membresia_id=<?php echo escapar($membresia["id"]); ?>&amp;pago=1#paymentPanel" class="membership-change-option <?php echo $estaSeleccionada ? 'is-selected' : ''; ?>">
+                      <span class="membership-change-name">
+                        <?php echo escapar($membresia["nombre"]); ?>
+                        <?php if ($esActual) : ?>
+                          <small>Actual</small>
+                        <?php endif; ?>
+                      </span>
+                      <strong>$<?php echo escapar(number_format((float) $membresia["precio"], 2)); ?> USD</strong>
+                      <em><?php echo escapar($membresia["descripcion"]); ?></em>
+                    </a>
+                  <?php endforeach; ?>
+                </div>
               </div>
             </article>
           </div>
@@ -356,7 +421,7 @@ $_SESSION["membership"] = $usuario["membresia"];
           <div class="payment-checkout-grid">
             <aside class="payment-receipt">
               <div class="payment-brand">PowerFit Gym</div>
-              <p class="payment-receipt-plan"><?php echo escapar($usuario["membresia"]); ?></p>
+              <p class="payment-receipt-plan"><?php echo escapar($membresiaSeleccionada["nombre"]); ?></p>
               <div class="payment-amount">
                 <span><?php echo escapar($montoPago); ?></span>
                 <small>USD</small>
@@ -367,6 +432,8 @@ $_SESSION["membership"] = $usuario["membresia"];
                 <dd><?php echo escapar($referenciaVista); ?></dd>
                 <dt>Cliente</dt>
                 <dd><?php echo escapar($usuario["nombre"]); ?></dd>
+                <dt>Plan seleccionado</dt>
+                <dd><?php echo escapar($membresiaSeleccionada["nombre"]); ?></dd>
                 <dt>Renovaci&oacute;n</dt>
                 <dd>30 d&iacute;as de membres&iacute;a</dd>
               </dl>
@@ -393,6 +460,7 @@ $_SESSION["membership"] = $usuario["membresia"];
               <form action="index.php#paymentPanel" method="POST" class="simulated-card-form" autocomplete="off">
                 <input type="hidden" name="csrf_token" value="<?php echo escapar($csrfToken); ?>">
                 <input type="hidden" name="pagar_membresia" value="1">
+                <input type="hidden" name="membresia_id" value="<?php echo escapar($membresiaSeleccionada["id"]); ?>">
 
                 <div class="form-group">
                   <label for="NumeroTarjeta">N&uacute;mero de tarjeta</label>
@@ -443,7 +511,7 @@ $_SESSION["membership"] = $usuario["membresia"];
               <dt>D&iacute;as de atraso</dt>
               <dd><?php echo escapar(abs($diasRestantes)); ?> d&iacute;as</dd>
               <dt>Monto pendiente</dt>
-              <dd>$<?php echo escapar($montoPago); ?></dd>
+              <dd>$<?php echo escapar($montoMembresiaActual); ?></dd>
               <dt>Fecha vencida</dt>
               <dd><?php echo escapar(formatoFecha($usuario["fecha_vencimiento"])); ?></dd>
             </dl>

@@ -617,6 +617,92 @@ body.menu-is-fixed {
   margin-right: 6px;
 }
 
+.membership-change-menu {
+  border-top: 1px solid #e4e9ef;
+  margin-top: 18px;
+  padding-top: 16px;
+}
+
+.membership-change-heading {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.membership-change-heading strong {
+  color: #101820;
+}
+
+.membership-change-heading span {
+  color: #69727d;
+  font-size: 13px;
+}
+
+.membership-change-options {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.membership-change-option {
+  background: #f6f8fa;
+  border: 1px solid #dde4eb;
+  border-radius: 8px;
+  color: #101820;
+  display: block;
+  min-height: 112px;
+  padding: 14px;
+  text-decoration: none;
+}
+
+.membership-change-option:hover,
+.membership-change-option:focus {
+  border-color: #f2c94c;
+  color: #101820;
+  text-decoration: none;
+}
+
+.membership-change-option.is-selected {
+  background: #fff7d6;
+  border-color: #f2c94c;
+}
+
+.membership-change-name {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.membership-change-name small {
+  background: #101820;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 7px;
+}
+
+.membership-change-option strong,
+.membership-change-option em {
+  display: block;
+}
+
+.membership-change-option strong {
+  color: #101820;
+  font-size: 18px;
+  margin-top: 8px;
+}
+
+.membership-change-option em {
+  color: #69727d;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.35;
+  margin-top: 6px;
+}
+
 .dashboard-list {
   list-style: none;
   margin: 0;
@@ -1074,7 +1160,8 @@ footer {
   }
 
   .dashboard-card-header,
-  .dashboard-actions {
+  .dashboard-actions,
+  .membership-change-heading {
     display: block;
   }
 
@@ -1136,7 +1223,8 @@ footer {
   }
 
   .payment-methods,
-  .payment-card-row {
+  .payment-card-row,
+  .membership-change-options {
     grid-template-columns: 1fr;
   }
 }
@@ -1331,6 +1419,11 @@ footer {
   .btn-gym,
   .btn-suscripcion {
     white-space: normal;
+  }
+
+  .membership-change-heading span {
+    display: block;
+    margin-top: 4px;
   }
 
   .membership-details {

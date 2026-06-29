@@ -91,7 +91,7 @@ function obtenerMembresiaPorId($conexion, $membresiaId) {
 
 function obtenerPagoPorId($conexion, $pagoId) {
     $consulta = $conexion->prepare(
-        "SELECT id, estado
+        "SELECT id, usuario_id, estado
          FROM pagos
          WHERE id = :id
          LIMIT 1"
@@ -263,23 +263,41 @@ try {
                 $mensaje = "Seleccione un pago valido para reembolsar.";
             } elseif ($pago["estado"] === "reembolsado") {
                 $mensaje = "Ese pago ya fue marcado como reembolsado.";
+            } elseif ($pago["estado"] !== "aprobado") {
+                $mensaje = "Solo se pueden reembolsar pagos aprobados.";
             } elseif (strlen($motivoReembolso) > 255) {
                 $mensaje = "El motivo del reembolso es demasiado largo.";
             } else {
+                $conexion->beginTransaction();
+
                 $consulta = $conexion->prepare(
                     "UPDATE pagos
                      SET estado = 'reembolsado',
                          motivo_reembolso = :motivo,
                          fecha_reembolso = NOW()
-                     WHERE id = :id"
+                     WHERE id = :id AND estado = 'aprobado'"
                 );
                 $consulta->execute(array(
                     ":motivo" => $motivoReembolso !== "" ? $motivoReembolso : "Reembolso administrativo",
                     ":id" => $pagoId
                 ));
 
-                $mensaje = "Pago marcado como reembolsado correctamente.";
-                $tipoMensaje = "success";
+                if ($consulta->rowCount() !== 1) {
+                    $conexion->rollBack();
+                    $mensaje = "Ese pago ya no esta disponible para reembolso.";
+                } else {
+                    $consultaUsuario = $conexion->prepare(
+                        "UPDATE usuarios
+                         SET fecha_vencimiento = DATE_SUB(COALESCE(fecha_vencimiento, CURRENT_DATE), INTERVAL 30 DAY)
+                         WHERE id = :usuario_id"
+                    );
+                    $consultaUsuario->execute(array(":usuario_id" => $pago["usuario_id"]));
+
+                    $conexion->commit();
+
+                    $mensaje = "Pago reembolsado y 30 dias descontados de la membresia.";
+                    $tipoMensaje = "success";
+                }
             }
         }
     }
@@ -840,7 +858,7 @@ $adminAutenticado = !empty($_SESSION["admin_auth"]);
                           <?php if ($pago["motivo_reembolso"]) : ?>
                             <small><?php echo escapar($pago["motivo_reembolso"]); ?></small>
                           <?php endif; ?>
-                        <?php else : ?>
+                        <?php elseif ($pago["estado"] === "aprobado") : ?>
                           <form action="index.php" method="POST" class="refund-form" onsubmit="return confirm('Marcar este pago como reembolsado?');">
                             <input type="hidden" name="csrf_token" value="<?php echo escapar($csrfToken); ?>">
                             <input type="hidden" name="reembolsar_pago" value="1">
@@ -851,6 +869,8 @@ $adminAutenticado = !empty($_SESSION["admin_auth"]);
                               Reembolsar
                             </button>
                           </form>
+                        <?php else : ?>
+                          <span>No aplica</span>
                         <?php endif; ?>
                       </td>
                     </tr>
